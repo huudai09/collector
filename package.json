@@ -1,0 +1,24 @@
+{
+  "name": "collector",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huudai09/collector.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/huudai09/collector/issues"
+  },
+  "homepage": "https://github.com/huudai09/collector#readme",
+  "dependencies": {
+    "cheerio": "^0.22.0",
+    "epub-gen": "0.0.17",
+    "request": "^2.81.0"
+  }
+}
