@@ -4,7 +4,11 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const epub = require("epub-gen");
 
+const header = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /></head><body>';
+const footer = '</body></html>';
+
 let stop = false;
+let created = false;
 let defaultOpts = {
   start: '',
   end: '',
@@ -53,25 +57,15 @@ const run = (opts) => {
     title = $('.chapter-title').text();
     nextLink = $('#next_chap').attr('href');
 
-    // Push content into list
-    opts.ebook.content.push({
-      title: title,
-      data: body 
-    });
+    title = `<a class="toc"><h3>${title}</h3></a>`;
+    body = title + body;
+    nextLink = nextLink === 'javascript:void(0)' ? null : nextLink;
 
     // Terminate requesting when reaching at opts.end or title, body, nextlink arent exits
-    if (stop || !title || !body || !nextLink) {
-      console.log('\x1b[36mStart generating epub file');
-
-      // Generate file
-      new epub(opts.ebook, opts.dest).promise.then(function(){
-        console.log('\x1b[0m');
-        console.log(`\x1b[32mEbook Generated Successfully! ${opts.dest}\x1b[0m`);
-        opts.onSuccess && opts.onSuccess();
-      }, function(err){
-        opts.onError && opts.onError(err);
-        console.log('\x1b[0m');
-        console.error('\x1b[31mFailed to generate Ebook because of ', err, '\x1b[0m')
+    if (stop || !nextLink) {
+      fs.appendFile(opts.dest, body + footer, 'utf8', (err) => {
+        if (err) throw err;
+        console.log('DONE');
       });
       return;
     }
@@ -80,13 +74,28 @@ const run = (opts) => {
     if (nextLink.indexOf(opts.end) !== -1) {
       stop = true;
     }
+    
+    if (created) {
+      fs.appendFile(opts.dest, body, 'utf8', (err) => {
+        if (err) throw err;
+
+        opts.start = nextLink;
+        console.log(opts.start);
+        run(opts);
+      });
+      return;
+    }
 
     // Continue requesting
-    let mem = process.memoryUsage();
-    opts.start = nextLink;
-    console.log(nextLink, mem);
-    run(opts);
+    body = header + body;
+    fs.writeFile(opts.dest, body, 'utf8', (err) => {
+      if (err) throw err;      
 
+      opts.start = nextLink;
+      console.log(opts.start);
+      created = true;
+      run(opts);
+    });
   })
 }
 

@@ -3,7 +3,7 @@ const collector = require('./collector');
 collector({
   start: 'http://truyenfull.vn/cuc-pham-gia-dinh/chuong-1',
   end: 'http://truyenfull.vn/cuc-pham-gia-dinh/chuong-10',
-  dest: './files/cuc-pham-gia-dinh.epub',
+  dest: './files/cuc-pham-gia-dinh.html',
   ebook: {
     title: "CỰC PHẨM GIA ĐINH", // *Required, title of the book. 
     author: "Vũ Nham", // *Required, name of the author. 
