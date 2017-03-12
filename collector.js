@@ -1,13 +1,22 @@
 const request = require('request');
 const process = require('process');
 const cheerio = require('cheerio');
+const download = require('download');
 const fs = require('fs');
 const epub = require("epub-gen");
 const concat = require('concatenate-files');
+var readline = require('readline');
 
 const header = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /></head><body>';
 const footer = '</body></html>';
+const FILEPATH = './files';
 const MAXSIZE = 10 * 1024 * 1024;
+const logger = (data) => {
+    //readline.clearLine(process.stdout);
+    readline.cursorTo(process.stdout, 0);
+    process.stdout.write(`Downloading: ${data}`);
+};
+
 
 let stop = false;
 let created = false;
@@ -54,6 +63,10 @@ const run = (opts) => {
       return;
     }
 
+    opts.start.indexOf(opts.end) === -1 ?
+      logger(opts.start) :
+      console.log('\nContent downloaded');
+
     // Extract contents from response
     $ = cheerio.load(body);
     $('.ads-holder').remove();
@@ -66,8 +79,10 @@ const run = (opts) => {
     body = title + body;
     nextLink = nextLink === 'javascript:void(0)' ? null : nextLink;
 
+    // calculate the size of file
     reqCounter += body.length;
     
+    // if the size of file greater than MAXSIZE, then create a new one
     if (reqCounter >= MAXSIZE) {
       created = false;
       reqCounter = 0;
@@ -83,6 +98,12 @@ const run = (opts) => {
     if (stop || !nextLink) {
       fs.appendFile(opts.dest, body + footer, 'utf8', (err) => {
         if (err) throw err;
+
+        opts.cover && download(opts.cover, FILEPATH).then(() => {
+            console.log('Cover image downloaded!');
+        });
+
+        // concat files if splitted
         if (arrFiles.length) {
           opts.oldDest = opts.oldDest.replace('.html', '.concated.html');
           concat(arrFiles, opts.oldDest, { separator: '' }, (errC, resC) => {
@@ -96,7 +117,7 @@ const run = (opts) => {
           });
           return;
         }
-        console.log('DONE');
+        console.log('File built!');
       });
       return;
     }
@@ -111,7 +132,6 @@ const run = (opts) => {
         if (err) throw err;
 
         opts.start = nextLink;
-        console.log(opts.start);
         run(opts);
       });
       return;
@@ -123,7 +143,6 @@ const run = (opts) => {
       if (err) throw err;      
 
       opts.start = nextLink;
-      console.log(opts.start);
       created = true;
       run(opts);
     });

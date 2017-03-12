@@ -1,12 +1,19 @@
-const fs = require('fs');
-const concat = require('concatenate-files');
+var readline = require('readline');
 
-concat(['./files/cuc-pham-gia-dinh.html', './files/lang-thien-truyen-thuyet.html'], 'out.html', { separator: '' }, function(err, result) {
-  // result == { outputFile: 'out.js', outputData: '...' }
-  console.log(result);
-});
+function writeWaitingPercent(p) {
+    //readline.clearLine(process.stdout);
+    readline.cursorTo(process.stdout, 0);
+    process.stdout.write(`waiting ... ${p}%`);
+}
 
-let stat = fs.statSync('./files/cuc-pham-gia-dinh.html');
-
-console.log(stat.size);
-
+let i = 1;
+console.log('aaaaaaaaaa');
+let iterval = setInterval(() => {
+  ++i;
+  if (i == 10) {
+    clearInterval(iterval);
+    console.log('\n-vvvvvvvvvvvvvvv');
+    return;
+  }
+  writeWaitingPercent(i);
+}, 1000);
