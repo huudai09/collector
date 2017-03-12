@@ -18,6 +18,7 @@
   "homepage": "https://github.com/huudai09/collector#readme",
   "dependencies": {
     "cheerio": "^0.22.0",
+    "concatenate-files": "^0.1.1",
     "epub-gen": "0.0.17",
     "request": "^2.81.0"
   }

@@ -3,12 +3,17 @@ const process = require('process');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const epub = require("epub-gen");
+const concat = require('concatenate-files');
 
 const header = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /></head><body>';
 const footer = '</body></html>';
+const MAXSIZE = 10 * 1024 * 1024;
 
 let stop = false;
 let created = false;
+let reqCounter = 0;
+let fi = 0;
+let arrFiles = [];
 let defaultOpts = {
   start: '',
   end: '',
@@ -61,10 +66,36 @@ const run = (opts) => {
     body = title + body;
     nextLink = nextLink === 'javascript:void(0)' ? null : nextLink;
 
-    // Terminate requesting when reaching at opts.end or title, body, nextlink arent exits
+    reqCounter += body.length;
+    
+    if (reqCounter >= MAXSIZE) {
+      created = false;
+      reqCounter = 0;
+      ++fi;
+
+      !opts.oldDest && (opts.oldDest = opts.dest) && arrFiles.push(opts.dest);
+
+      opts.dest = opts.oldDest.replace('.html', `-${fi}.html`);
+      arrFiles.push(opts.dest);
+    }
+
+    // Terminate requesting when reaching at opts.end or nextlink isnt exits
     if (stop || !nextLink) {
       fs.appendFile(opts.dest, body + footer, 'utf8', (err) => {
         if (err) throw err;
+        if (arrFiles.length) {
+          opts.oldDest = opts.oldDest.replace('.html', '.concated.html');
+          concat(arrFiles, opts.oldDest, { separator: '' }, (errC, resC) => {
+            if (errC) throw errC;
+            
+            arrFiles.forEach((f, i) => {
+              fs.unlink(f);
+            });
+
+            console.log('Concated files! DONE');
+          });
+          return;
+        }
         console.log('DONE');
       });
       return;
@@ -87,7 +118,7 @@ const run = (opts) => {
     }
 
     // Continue requesting
-    body = header + body;
+    body = opts.oldDest ? body : header + body;
     fs.writeFile(opts.dest, body, 'utf8', (err) => {
       if (err) throw err;      
 
