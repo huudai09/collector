@@ -119,12 +119,12 @@ const run = (opts) => {
     body = title + body;
     nextLink = nextLink === 'javascript:void(0)' ? null : nextLink;
 
-    if (stop) {
+    if (stop || !nextLink) {
       opts.terminate = true;
     }
 
     // Mark to terminate request
-    if (!nextLink || nextLink.indexOf(opts.end) !== -1) {
+    if (nextLink && nextLink.indexOf(opts.end) !== -1) {
       stop = true;
     }
 
