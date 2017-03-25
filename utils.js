@@ -59,8 +59,8 @@ exports.generateFile = (opts) => {
 
   // listen for all archive data to be written
   output.on('close', function() {
-    console.log(archive.pointer() + ' total bytes');
-    console.log('archiver has been finalized and the output file descriptor has closed.');
+    console.log('Total size:', archive.pointer()/1000000 + ' MB');
+    console.log('\x1b[36mDONE\x1b[0m');
   });
 
   // good practice to catch this error explicitly

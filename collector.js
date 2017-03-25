@@ -88,7 +88,7 @@ const run = (opts) => {
       utils.logger(opts.start);
     } else {
       utils.logger(opts.start);
-      console.log('\nContent downloaded');
+      console.log('\nOk. Start generating');
     }
 
     // Extract contents from response
@@ -145,13 +145,16 @@ const run = (opts) => {
           .replace('{{items}}', items)
           .replace('{{itemRefs}}', itemRefs);
 
+        console.log('Create table of contents');
         fs.writeFileSync(path.join(opts.dest, 'OEBPS/toc.ncx'), tocCnt, 'utf8');
+        console.log('Create contents');
         fs.writeFileSync(path.join(opts.dest, 'OEBPS/content.opf'), contentCnt, 'utf8');
 
         if (opts.cover) {
           download(opts.cover)
             .pipe(fs.createWriteStream(path.join(opts.dest, 'OEBPS/cover.jpeg')))
             .on('finish', () => {
+              console.log('Download cover image');
               utils.generateFile(opts);
             });
         } else {
