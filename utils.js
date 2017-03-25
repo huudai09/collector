@@ -52,7 +52,7 @@ exports.createBase = (opts) => {
 // Generate epub
 exports.generateFile = (opts) => {
   // create a file to stream archive data to.
-  var output = fs.createWriteStream(`${opts.dest}/${opts.output}.epub`);
+  var output = fs.createWriteStream(`${opts.output}`);
   var archive = archiver('zip', {
       zlib: { level: 9 } // Sets the compression level.
   });

@@ -60,6 +60,10 @@ let navPoints = '';
 
 // Downloading contents
 const run = (opts) => {
+  if (!opts.dest) {
+    opts.output = `./files/${opts.name}/${opts.name}.epub`;
+    opts.dest = `./files/${opts.name}`;
+  }
   request(Object.assign({}, reqOpts, {
     url: opts.start
   }), 
