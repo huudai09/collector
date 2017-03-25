@@ -1,6 +1,7 @@
 const request = require('request');
 const process = require('process');
 const cheerio = require('cheerio');
+const download = require('download');
 const path = require('path');
 const fs = require('fs');
 const uuid = require('uuid/v1')();
@@ -20,7 +21,7 @@ const contentOpf = `<?xml version="1.0" encoding="UTF-8"?>
     <manifest>
         <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml" />
         <item id="css" href="style.css" media-type="text/css" />
-        <item id="image_cover" href="{{cover}}" media-type="{{coverMime}}" />
+        <item id="image_cover" href="cover.jpeg" media-type="image/jpeg" />
         {{items}}
     </manifest>
     <spine toc="ncx">
@@ -147,7 +148,16 @@ const run = (opts) => {
         fs.writeFileSync(path.join(opts.dest, 'OEBPS/toc.ncx'), tocCnt, 'utf8');
         fs.writeFileSync(path.join(opts.dest, 'OEBPS/content.opf'), contentCnt, 'utf8');
 
-        utils.generateFile(opts);
+        if (opts.cover) {
+          download(opts.cover)
+            .pipe(fs.createWriteStream(path.join(opts.dest, 'OEBPS/cover.jpeg')))
+            .on('finish', () => {
+              utils.generateFile(opts);
+            });
+        } else {
+          utils.generateFile(opts);
+        }
+
         return; 
       }
 
