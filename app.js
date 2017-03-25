@@ -1,17 +1,9 @@
 const collector = require('./collector');
 
 collector({
-  start: 'http://truyenfull.vn/cuc-pham-gia-dinh/chuong-1',
-  end: 'http://truyenfull.vn/cuc-pham-gia-dinh/chuong-10',
-  dest: './files/cuc-pham-gia-dinh.epub',
-  ebook: {
-    title: "CỰC PHẨM GIA ĐINH", // *Required, title of the book. 
-    author: "Vũ Nham", // *Required, name of the author. 
-    publisher: "No one", // optional 
-    cover: "http://static.truyenfull.vn/poster/n/QWJ4NzhWQUZmRkcxcTBldypGYVZaejBpX0deRmYqQCp2VmtBYUxNMm0xMW8yTHkxeFgwSkxfVypdTVdGQ1p5OVdVREJyJFZaTFlbcFVTUzlCUVVGQlFVRkJRVzFHUVM5dF9VSjJOMSRLUXxZMCN5OTNNfkUxTFdeek1*ST0=/cuc-pham-gia-dinh.jpg",
-    content: [] 
-  },
-  onSuccess: () => {
-    
-  }
+  output: 'LINH_VŨ_THIÊN_HẠ',
+  start: 'http://truyenfull.vn/linh-vu-thien-ha/chuong-2101',
+  end: 'http://truyenfull.vn/linh-vu-thien-ha/chuong-2102',
+  cover: 'http://static.truyenfull.vn/poster/n/QWJ4NzhWQUZmRkcxcTBldypGYVZaejBpX0deRmYqQCp2VmtBYUxNMm0xMW96THkxNE1XTnhUVUpCTVd4VCN5OVdaM0JbKURdUlNGJFVTUzlCUVVGQlFVRkJRVUppUVM4elNGRk9USCRUTjFwRU9DOTNNfkUxTFdeek1*SXRTV00wTV49PQ==/linh-vu-thien-ha.jpg',
+  dest: './files/linh-vu-thien-ha', // if size over 10mb, the dest will be named <filename>.concated.html
 })

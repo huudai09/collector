@@ -1,21 +1,50 @@
 const request = require('request');
 const process = require('process');
 const cheerio = require('cheerio');
+const path = require('path');
 const fs = require('fs');
-const epub = require("epub-gen");
+const uuid = require('uuid/v1')();
+const utils = require('./utils');
+
+const contentTmp = '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta charset="UTF-8" /><title>{{title}}</title><link rel="stylesheet" type="text/css" href="style.css" /></head><body>{{body}}</body></html>';
+const contentOpf = `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="BookId" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xml:lang="en" xmlns:media="http://www.idpf.org/epub/vocab/overlays/#" prefix="ibooks: http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0/">
+    <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
+        <dc:identifier id="BookId">{{uuid}}</dc:identifier>
+        <meta refines="#BookId" property="identifier-type" scheme="onix:codelist5">22</meta>
+        <meta property="dcterms:identifier" id="meta-identifier">BookId</meta>
+        <meta name="cover" content="image_cover" />
+        <meta name="generator" content="epub-gen" />
+        <meta property="ibooks:specified-fonts">true</meta>
+    </metadata>
+    <manifest>
+        <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml" />
+        <item id="css" href="style.css" media-type="text/css" />
+        <item id="image_cover" href="{{cover}}" media-type="{{coverMime}}" />
+        {{items}}
+    </manifest>
+    <spine toc="ncx">
+        <itemref idref="toc" />
+        {{itemRefs}}
+    </spine>
+</package>`;
+
+const tocNcx = `<?xml version="1.0" encoding="UTF-8"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+    <head>
+        <meta name="dtb:uid" content="{{uuid}}" />
+        <meta name="dtb:generator" content="epub-gen" />
+        <meta name="dtb:depth" content="1" />
+        <meta name="dtb:totalPageCount" content="0" />
+        <meta name="dtb:maxPageNumber" content="0" />
+    </head>
+    <navMap>
+      {{navPoints}}
+    </navMap>
+</ncx>`;
 
 let stop = false;
-let defaultOpts = {
-  start: '',
-  end: '',
-  ebook:  {
-    title: '', // *Required, title of the book. 
-    author: '', // *Required, name of the author. 
-    publisher: '', // optional 
-    cover: '', // Url or File path, both ok. 
-    content: []
-  }
-}; 
+let created = false;
 let reqOpts = {
   url: '',
   headers: {
@@ -23,16 +52,25 @@ let reqOpts = {
     'Accept': '*/*',
   }
 };
+let reqIdx = 0;
+let items = '';
+let itemRefs = '';
+let navPoints = '';
 
+// Downloading contents
 const run = (opts) => {
   request(Object.assign({}, reqOpts, {
     url: opts.start
   }), 
   // request response
   (error, response, body) => {
-    let title;
+    let title, unsignedTitle;
     let nextLink;
     let $;
+    let fname;
+    let toc;
+
+    ++reqIdx;
 
     // Check errors
     if (error) {
@@ -45,48 +83,77 @@ const run = (opts) => {
       return;
     }
 
+    if (opts.start.indexOf(opts.end) === -1) {
+      utils.logger(opts.start);
+    } else {
+      utils.logger(opts.start);
+      console.log('\nContent downloaded');
+    }
+
     // Extract contents from response
     $ = cheerio.load(body);
     $('.ads-holder').remove();
 
     body = $('.chapter-c').html();
     title = $('.chapter-title').text();
+    unsignedTitle = utils.showUnsignedString(title);
     nextLink = $('#next_chap').attr('href');
 
-    // Push content into list
-    opts.ebook.content.push({
+    toc =  {
+      id: `content_${reqIdx}`,
       title: title,
-      data: body 
-    });
+      fname: unsignedTitle.toLowerCase().replace(/([^a-z0-9])/g, '-').replace(/-+/g, '-'),
+      order: reqIdx
+    };
 
-    // Terminate requesting when reaching at opts.end or title, body, nextlink arent exits
-    if (stop || !title || !body || !nextLink) {
-      console.log('\x1b[36mStart generating epub file');
+    items += utils.createItem(toc);
+    itemRefs += utils.createItemRef(toc);
+    navPoints += utils.createNavPoint(toc);
 
-      // Generate file
-      new epub(opts.ebook, opts.dest).promise.then(function(){
-        console.log('\x1b[0m');
-        console.log(`\x1b[32mEbook Generated Successfully! ${opts.dest}\x1b[0m`);
-        opts.onSuccess && opts.onSuccess();
-      }, function(err){
-        opts.onError && opts.onError(err);
-        console.log('\x1b[0m');
-        console.error('\x1b[31mFailed to generate Ebook because of ', err, '\x1b[0m')
-      });
-      return;
+    title = `<a class="toc"><h3>${title}</h3></a>`;
+    body = title + body;
+    nextLink = nextLink === 'javascript:void(0)' ? null : nextLink;
+
+    if (stop) {
+      opts.terminate = true;
     }
 
     // Mark to terminate request
-    if (nextLink.indexOf(opts.end) !== -1) {
+    if (!nextLink || nextLink.indexOf(opts.end) !== -1) {
       stop = true;
     }
 
-    // Continue requesting
-    let mem = process.memoryUsage();
-    opts.start = nextLink;
-    console.log(nextLink, mem);
-    run(opts);
+    // create base folder
+    if (!opts.createFd) {
+      utils.createBase(opts);
+      opts.createFd = true;
+    }
 
+    body = contentTmp.replace('{{title}}', title).replace('{{body}}', body).replace(/<br>/g, '<br/>');
+    fname = path.join(opts.dest, 'OEBPS', `${toc.fname}.xhtml`);
+
+    fs.writeFile(fname, body, 'utf8', (err) => {
+      if (err) throw err;
+      if (opts.terminate) {
+        let tocCnt = tocNcx
+          .replace('{{uuid}}', uuid)
+          .replace('{{navPoints}}', navPoints);
+
+        let contentCnt = contentOpf
+          .replace('{{uuid}}', uuid)
+          .replace('{{items}}', items)
+          .replace('{{itemRefs}}', itemRefs);
+
+        fs.writeFileSync(path.join(opts.dest, 'OEBPS/toc.ncx'), tocCnt, 'utf8');
+        fs.writeFileSync(path.join(opts.dest, 'OEBPS/content.opf'), contentCnt, 'utf8');
+
+        utils.generateFile(opts);
+        return; 
+      }
+
+      opts.start = nextLink;
+      run(opts);
+    });
   })
 }
 
