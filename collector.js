@@ -149,7 +149,7 @@ const run = (opts) => {
           .replace('{{items}}', items)
           .replace('{{itemRefs}}', itemRefs);
 
-        console.log('Create table of contents');
+        console.log('\nCreate table of contents');
         fs.writeFileSync(path.join(opts.dest, 'OEBPS/toc.ncx'), tocCnt, 'utf8');
         console.log('Create contents');
         fs.writeFileSync(path.join(opts.dest, 'OEBPS/content.opf'), contentCnt, 'utf8');
