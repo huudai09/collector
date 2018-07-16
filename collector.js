@@ -64,6 +64,9 @@ const run = (opts) => {
     opts.output = `./files/${opts.name}/${opts.name}.epub`;
     opts.dest = `./files/${opts.name}`;
   }
+  
+  reqOpts.proxy = opts.proxy || '';
+  
   request(Object.assign({}, reqOpts, {
     url: opts.start
   }), 
@@ -155,12 +158,16 @@ const run = (opts) => {
         fs.writeFileSync(path.join(opts.dest, 'OEBPS/content.opf'), contentCnt, 'utf8');
 
         if (opts.cover) {
-          download(opts.cover)
-            .pipe(fs.createWriteStream(path.join(opts.dest, 'OEBPS/cover.jpeg')))
-            .on('finish', () => {
-              console.log('Download cover image');
-              utils.generateFile(opts);
-            });
+		  var downloadOpts = {};
+		  if (opts.proxy) {
+			  downloadOpts.proxy = opts.proxy;
+		  }
+
+          download(opts.cover, '', downloadOpts)
+			.then((data) => {
+				fs.writeFileSync(path.join(opts.dest, 'OEBPS/cover.jpeg'), data);
+				utils.generateFile(opts);
+			});
         } else {
           utils.generateFile(opts);
         }
@@ -169,7 +176,15 @@ const run = (opts) => {
       }
 
       opts.start = nextLink;
-      run(opts);
+	  
+	  if (!opts.timeout) {
+		  run(opts);
+	  } else {
+		  setTimeout(function(){
+			  run(opts);
+		  }, opts.timeout);
+	  }
+	  
     });
   })
 }
